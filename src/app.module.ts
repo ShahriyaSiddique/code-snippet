@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { dataSourceOptions } from './config/typeorm.config';
 import { UsersModule } from './users/users.module';
+import { SnippetsModule } from './snippet/snippets.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { UsersModule } from './users/users.module';
       }),
     }),
     AuthModule,
-    UsersModule
+    UsersModule,
+    SnippetsModule
   ],
   controllers: [AppController],
   providers: [AppService],

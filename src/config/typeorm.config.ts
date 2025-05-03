@@ -2,6 +2,7 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 import { User } from '../users/entities/user.entity';
+import { Snippets } from '../snippet/entities/snippets.entity';
 
 config();
 
@@ -14,7 +15,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: configService.get('DB_USERNAME'),
   password: configService.get('DB_PASSWORD'),
   database: configService.get('DB_NAME'),
-  entities: [User],
+  entities: [User, Snippets],
   migrations: ['dist/migrations/*.js'],
   synchronize: false,
   migrationsRun: false,
