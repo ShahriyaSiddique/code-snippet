@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { AuthResponseDto, UserResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,20 +24,27 @@ export class AuthService {
     return this.usersRepository.findOne({ where: { id: userId } });
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string }> {
+  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = loginDto;
-    const user = await this.usersRepository.findOne({where: { email }});
+    const user = await this.usersRepository.findOne({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const payload = { email: user.email, sub: user.id };
+    const userResponse: UserResponseDto = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    };
+
     return {
-      access_token: this.jwtService.sign(payload),
+      user: userResponse,
+      accessToken: this.jwtService.sign(payload),
     };
   }
 
-  async register(registerDto: RegisterDto): Promise<{ access_token: string; }> {
+  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const { email, password, name } = registerDto;
     const existingUser = await this.usersRepository.findOne({
       where: { email },
@@ -54,8 +62,24 @@ export class AuthService {
 
     const savedUser = await this.usersRepository.save(user);
     const payload = { email: savedUser.email, sub: savedUser.id };
+
+    const userResponse: UserResponseDto = {
+      id: savedUser.id,
+      name: savedUser.name,
+      email: savedUser.email,
+    };
+
     return {
-      access_token: this.jwtService.sign(payload),
+      user: userResponse,
+      accessToken: this.jwtService.sign(payload),
+    };
+  }
+
+  getProfile(user: User): UserResponseDto {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
     };
   }
 }
