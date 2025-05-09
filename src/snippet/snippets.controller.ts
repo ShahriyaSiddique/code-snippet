@@ -22,22 +22,27 @@ export class SnippetsController {
         return this.snippetsService.findAll(req.user?.id);
     }
 
-    @Get(':id')
+    @Get('/shared')
+    findShared(@Request() req) {
+        return this.snippetsService.findShared(req.user?.id);
+    }
+
+    @Get('/:id')
     findOne(@Param('id') id: string, @Request() req) {
         return this.snippetsService.findOne(id, req.user?.id);
     }
 
-    @Patch(':id')
+    @Patch('/:id')
     update(@Param('id') id: string, @Body() updateSnippetDto: UpdateSnippetDto, @Request() req) {
         return this.snippetsService.update(id, updateSnippetDto, req.user.id);
     }
 
-    @Delete(':id')
+    @Delete('/:id')
     remove(@Param('id') id: string, @Request() req) {
         return this.snippetsService.remove(id, req.user.id);
     }
 
-    @Post(':id/share')
+    @Post('/:id/share')
     shareSnippet(
         @Param('id') id: string,
         @Body() shareDto: ShareSnippetDto,

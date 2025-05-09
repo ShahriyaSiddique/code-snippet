@@ -28,7 +28,7 @@ export class SnippetsService {
 
         if (userId) {
             queryBuilder.where(
-                '(snippet.isPublic = :isPublic OR snippet.user.id = :userId OR sharedWith.id = :userId)',
+                '(snippet.isPublic = :isPublic OR snippet.user.id = :userId)',
                 {
                     isPublic: true,
                     userId,
@@ -130,5 +130,15 @@ export class SnippetsService {
         }
 
         return snippet.shares.some(share => share.sharedWith.id === userId);
+    }
+
+    async findShared(userId: string): Promise<Snippets[]> {
+        return this.snippetRepository
+            .createQueryBuilder('snippet')
+            .leftJoinAndSelect('snippet.user', 'user')
+            .leftJoinAndSelect('snippet.shares', 'shares')
+            .leftJoinAndSelect('shares.sharedWith', 'sharedWith')
+            .where('sharedWith.id = :userId', { userId })
+            .getMany();
     }
 }
