@@ -1,5 +1,6 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { SnippetShare } from './snippet-share.entity';
 
 @Entity()
 export class Snippets {
@@ -20,6 +21,9 @@ export class Snippets {
 
   @ManyToOne(() => User, (user) => user.snippets)
   user: User;
+
+  @OneToMany(() => SnippetShare, (share) => share.snippet)
+  shares: SnippetShare[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

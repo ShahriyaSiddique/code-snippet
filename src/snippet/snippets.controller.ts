@@ -4,6 +4,7 @@ import { ResponseInterceptor } from '../common/interceptors/response.interceptor
 import { CreateSnippetDto } from './dto/create-snippet.dto';
 import { UpdateSnippetDto } from './dto/update-snippet.dto';
 import { SnippetsService } from './snippets.service';
+import { ShareSnippetDto } from './dto/share-snippet.dto';
 
 @Controller('snippets')
 @UseGuards(AuthGuard('jwt'))
@@ -34,5 +35,14 @@ export class SnippetsController {
     @Delete(':id')
     remove(@Param('id') id: string, @Request() req) {
         return this.snippetsService.remove(id, req.user.id);
+    }
+
+    @Post(':id/share')
+    shareSnippet(
+        @Param('id') id: string,
+        @Body() shareDto: ShareSnippetDto,
+        @Request() req
+    ) {
+        return this.snippetsService.shareSnippet(id, shareDto, req.user.id);
     }
 }

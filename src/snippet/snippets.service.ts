@@ -5,27 +5,36 @@ import { User } from '../users/entities/user.entity';
 import { CreateSnippetDto } from './dto/create-snippet.dto';
 import { UpdateSnippetDto } from './dto/update-snippet.dto';
 import { Snippets } from './entities/snippets.entity';
+import { SnippetShare } from './entities/snippet-share.entity';
+import { ShareSnippetDto } from './dto/share-snippet.dto';
 
 @Injectable()
 export class SnippetsService {
     constructor(
-    @InjectRepository(Snippets)
-    private snippetRepository: Repository<Snippets>,
+        @InjectRepository(Snippets)
+        private snippetRepository: Repository<Snippets>,
+        @InjectRepository(SnippetShare)
+        private snippetShareRepository: Repository<SnippetShare>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
     ) { }
 
     async findAll(userId?: string): Promise<Snippets[]> {
         const queryBuilder = this.snippetRepository
             .createQueryBuilder('snippet')
-            .leftJoinAndSelect('snippet.user', 'user');
+            .leftJoinAndSelect('snippet.user', 'user')
+            .leftJoinAndSelect('snippet.shares', 'shares')
+            .leftJoinAndSelect('shares.sharedWith', 'sharedWith');
 
         if (userId) {
-            // If user is authenticated, show their private snippets and all public snippets
-            queryBuilder.where('(snippet.isPublic = :isPublic OR snippet.user.id = :userId)', {
-                isPublic: true,
-                userId,
-            });
+            queryBuilder.where(
+                '(snippet.isPublic = :isPublic OR snippet.user.id = :userId OR sharedWith.id = :userId)',
+                {
+                    isPublic: true,
+                    userId,
+                }
+            );
         } else {
-            // If user is not authenticated, show only public snippets
             queryBuilder.where('snippet.isPublic = :isPublic', { isPublic: true });
         }
 
@@ -44,15 +53,17 @@ export class SnippetsService {
     async findOne(id: string, userId?: string): Promise<Snippets> {
         const snippet = await this.snippetRepository.findOne({
             where: { id },
-            relations: ['user'],
+            relations: ['user', 'shares', 'shares.sharedWith'],
         });
+
         if (!snippet) {
-            throw new NotFoundException('Snippets not found');
+            throw new NotFoundException('Snippet not found');
         }
 
-        if (!snippet.isPublic && snippet.user?.id !== userId) {
-            throw new ForbiddenException('You do not have access to this snippets');
+        if (userId && !(await this.hasAccessToSnippet(id, userId))) {
+            throw new ForbiddenException('You do not have access to this snippet');
         }
+
         return snippet;
     }
 
@@ -72,5 +83,52 @@ export class SnippetsService {
         }
         const result = await this.snippetRepository.delete(id);
         return result.affected > 0;
+    }
+
+    async shareSnippet(snippetId: string, shareDto: ShareSnippetDto, ownerId: string): Promise<void> {
+        const snippet = await this.findOne(snippetId, ownerId);
+        if (snippet.user.id !== ownerId) {
+            throw new ForbiddenException('You can only share your own snippets');
+        }
+
+        // Remove existing shares for this snippet
+        await this.snippetShareRepository.delete({ snippet: { id: snippetId } });
+
+        // Create new shares
+        const sharePromises = shareDto.userIds.map(async (userId) => {
+            const user = await this.userRepository.findOne({ where: { id: userId } });
+            if (!user) {
+                throw new NotFoundException(`User with ID ${userId} not found`);
+            }
+
+            const share = this.snippetShareRepository.create({
+                snippet,
+                sharedWith: user,
+            });
+            return this.snippetShareRepository.save(share);
+        });
+
+        await Promise.all(sharePromises);
+    }
+
+    private async hasAccessToSnippet(snippetId: string, userId: string): Promise<boolean> {
+        const snippet = await this.snippetRepository.findOne({
+            where: { id: snippetId },
+            relations: ['user', 'shares', 'shares.sharedWith'],
+        });
+
+        if (!snippet) {
+            return false;
+        }
+
+        if (snippet.isPublic) {
+            return true;
+        }
+
+        if (snippet.user.id === userId) {
+            return true;
+        }
+
+        return snippet.shares.some(share => share.sharedWith.id === userId);
     }
 }
