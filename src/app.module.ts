@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { dataSourceOptions } from './config/typeorm.config';
 import { UsersModule } from './users/users.module';
 import { SnippetsModule } from './snippet/snippets.module';
+import { CollaborationModule } from './collaboration/collaboration.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { SnippetsModule } from './snippet/snippets.module';
     }),
     AuthModule,
     UsersModule,
-    SnippetsModule
+    SnippetsModule,
+    CollaborationModule
   ],
   controllers: [AppController],
   providers: [AppService],
