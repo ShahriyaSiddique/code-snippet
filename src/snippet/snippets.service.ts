@@ -67,6 +67,23 @@ export class SnippetsService {
         return snippet;
     }
 
+    async findOnePublic(id: string): Promise<Snippets> {
+        const snippet = await this.snippetRepository.findOne({
+            where: { id },
+            relations: ['user'],
+        });
+
+        if (!snippet) {
+            throw new NotFoundException('Snippet not found');
+        }
+
+        if (!snippet.isPublic) {
+            throw new ForbiddenException('This snippet is not public');
+        }
+
+        return snippet;
+    }
+
     async update(id: string, updateSnippetDto: UpdateSnippetDto, userId: string): Promise<Snippets> {
         const snippets = await this.findOne(id, userId);
         if (snippets.user.id !== userId && snippets.shares.some(share => share.sharedWith.id !== userId)) {
